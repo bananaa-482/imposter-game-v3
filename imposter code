@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Imposter Party Game</title>
+<style>
+body{margin:0;font-family:Arial;background:black;color:white;text-align:center;overflow:hidden;}
+#fogCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;}
+nav{background:rgba(0,0,0,.3);padding:15px;font-size:20px}
+nav button{background:none;border:none;color:white;font-size:18px;margin:0 10px;cursor:pointer}
+.page{display:none;padding:25px;max-width:750px;margin:auto}
+.active{display:block;animation:fade .6s}
+@keyframes fade{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+button{padding:12px 20px;margin:10px;font-size:18px;border:none;border-radius:12px;background:#7209b7;color:white;cursor:pointer}
+select,textarea{width:90%;padding:12px;margin:10px;border:none;border-radius:10px;font-size:16px}
+.card{background:black;color:white;padding:35px;border-radius:20px;font-size:30px;animation:flip .7s;text-shadow:0 0 15px blue;}
+@keyframes flip{0%{transform:rotateY(90deg);opacity:0}100%{transform:none;opacity:1}}
+.player-btn{width:90%;background:#4cc9f0}
+</style>
+</head>
+<body>
+<canvas id="fogCanvas"></canvas>
+<nav>
+<button onclick="go('home')">Home</button>
+<button onclick="go('setup')">Word Mode</button>
+</nav>
+
+<div id="home" class="page active">
+<h1>Imposter Party Game</h1>
+<p>One device • Pass & Play • Find the Imposter</p>
+</div>
+
+<div id="setup" class="page">
+<h2>Word Imposter Setup</h2>
+<textarea id="players" rows="6" placeholder="One name per line"></textarea>
+<select id="imposters">
+  <option value="1">1</option>
+  <option value="2">2</option>
+  <option value="3">3</option>
+  <option value="4">4</option>
+  <option value="5">5</option>
+  <option value="10">10</option>
+</select>
+<select id="genreSelect">
+  <option value="food">Food</option>
+  <option value="animals">Animals</option>
+  <option value="school">School</option>
+  <option value="sports">Sports</option>
+  <option value="places">Places</option>
+  <option value="objects">Objects</option>
+  <option value="movies">Movies</option>
+  <option value="technology">Technology</option>
+  <option value="nature">Nature</option>
+  <option value="jobs">Jobs</option>
+  <option value="chaos">🔥 Chaos Mode</option>
+</select>
+<button onclick="startWord()">Start Word Game</button>
+</div>
+
+<div id="playerList" class="page"><h2>Tap Your Name</h2><div id="plist"></div></div>
+<div id="reveal" class="page"><div id="card" class="card"></div><button onclick="back()">Done</button></div>
+
+<audio id="ominous" src="https://www.soundjay.com/misc/sounds/creepy-wind-01.mp3" preload="auto"></audio>
+
+<script>
+function go(p){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(p).classList.add('active'); if(p==='reveal') document.getElementById('ominous').play(); else document.getElementById('ominous').pause();}
+
+const genres = {
+  food: ["Pizza","Burger","Pasta","Sushi","Taco","Ice Cream","Salad","Steak","Pancakes","Fries","Ramen","Donut","Nachos","Waffles","Burrito","Sandwich","Hotdog","Lasagna","Macaroni","Spaghetti","Cereal","Bagel","Soup","Pie","Cookies","Brownie","Chocolate","Cheeseburger","Fish","Shrimp","Eggs","Toast","Jam","Yogurt","Milkshake","Smoothie","Muffin","Pretzel","Popcorn","Coconut","Avocado"],
+  animals: ["Dog","Cat","Tiger","Elephant","Dolphin","Eagle","Snake","Monkey","Bear","Horse","Giraffe","Penguin","Kangaroo","Wolf","Shark","Lion","Fox","Rabbit","Otter","Panda","Cheetah","Buffalo","Alligator","Crocodile","Hawk","Owl","Frog","Whale","Seal","Otter","Goat","Sheep","Pig","Camel","Horse","Duck","Swan","Deer","Moose","Bison"],
+  school: ["Teacher","Homework","Locker","Chromebook","Notebook","Desk","Whiteboard","Bus","Gym","Quiz","Project","Presentation","Bell","Cafeteria","Library","Principal","Playground","Schedule","Exam","Class","Marker","Pen","Pencil","Paper","Eraser","Ruler","Calculator","Lab","Uniform","Poster","Chair","Table","Board","Books","Lesson","Art","Music","Drama","Assembly","FieldTrip"],
+  sports: ["Basketball","Soccer","Baseball","Tennis","Swimming","Track","Volleyball","Wrestling","Football","Golf","Hockey","Lacrosse","Rugby","Gymnastics","Skateboarding","Surfing","Skiing","Snowboarding","Karate","Boxing","Running","Cycling","Archery","Fencing","Climbing","Cricket","Dodgeball","Softball","Ping Pong","Handball","Badminton","Sailing","Rowing","Kayaking","Horse Riding","Skating","Hiking","Yoga","Weightlifting"],
+  places: ["Beach","Mall","School","Airport","Park","Museum","Library","Stadium","Zoo","Theater","Hospital","Hotel","Cafe","Arcade","Restaurant","Station","Bridge","Monument","Square","Market","Harbor","Mountain","Desert","Island","Lake","River","Forest","City","Village","Castle","Temple","Church","Synagogue","Mosque","Garden","Amusement Park","Circus","Aquarium","Observatory","Cinema","Playground"],
+  objects: ["Laptop","Phone","Backpack","Watch","Headphones","Bottle","Keys","Wallet","Camera","Shoes","Calculator","Controller","Speaker","Book","Chair","Table","Lamp","Pen","Pencil","Notebook","Bag","Glasses","Fan","Television","Remote","Couch","Microwave","Fridge","Oven","Bed","Mirror","Clock","Umbrella","Boots","Hat","Ring","Bracelet","Necklace","Sunglasses","Bicycle","Skateboard"],
+  movies: ["Inception","Titanic","Avatar","Jaws","Frozen","Gladiator","Rocky","Up","Cars","Matrix","Jurassic Park","Toy Story","Interstellar","Avengers","Iron Man","Black Panther","Spider-Man","Wonder Woman","Shrek","Lion King","Finding Nemo","Aladdin","Cinderella","Moana","Star Wars","Harry Potter","The Hobbit","Lord of the Rings","Pirates of the Caribbean","Batman","Superman","Deadpool","Ant-Man","Thor","Captain America","Guardians of the Galaxy","Wonder Woman","Doctor Strange","Black Widow","Hercules","Mulan","Beauty and the Beast"],
+  technology: ["WiFi","Bluetooth","Smartphone","Laptop","Tablet","AI","Robot","Drone","Cloud","App","Server","VR Headset","Keyboard","Mouse","Monitor","Printer","Camera","Speaker","Microphone","Charger","Battery","USB","Hard Drive","Flash Drive","Smartwatch","Drone","Router","Switch","Headphones","Joystick","Smart TV","Projector","Smart Home","3D Printer","Internet","Email","Software","Hardware","Algorithm","Gadget","Chip","Network","Sensor"],
+  nature: ["Mountain","River","Forest","Ocean","Desert","Volcano","Waterfall","Canyon","Island","Glacier","Storm","Rainbow","Sun","Moon","Stars","Cloud","Rain","Snow","Wind","Lightning","Hail","Fog","Beach","Lake","Jungle","Savanna","Swamp","Cave","Cliff","Valley","Meadow","Hill","Prairie","Tundra","Aurora","Geyser","Reef","Waterfall","Pond","Marsh","Dune","Coral","Lagoon"],
+  jobs: ["OnlyFans Model","OnlyFans Model","OnlyFans Model","OnlyFans Model","OnlyFans Model","OnlyFans Model","OnlyFans Model","Doctor","Teacher","Firefighter","Police Officer","Chef","Pilot","Engineer","Lawyer","Artist","Musician","Coach","Nurse","Mechanic","Architect","Scientist","Writer","Actor","Director","Designer","Photographer","Dentist","Pharmacist","Biologist","Astronaut","Electrician","Plumber","Farmer","Driver","Taxi Driver","Bus Driver","Waiter","Waitress","Barista","Soldier","Judge","Secretary","Manager","Coach","Athlete"]
+};
+
+let currentWord="";
+let players=[],imposters=[];
+
+function pickImposters(count){imposters=[];if(count>=players.length){for(let i=0;i<players.length;i++) imposters.push(i);return;} while(imposters.length<count){let r=Math.floor(Math.random()*players.length);if(!imposters.includes(r)) imposters.push(r);}}
+
+function startWord(){players=document.getElementById('players').value.split('\n').filter(x=>x);pickImposters(+document.getElementById('imposters').value);let currentGenre=document.getElementById('genreSelect').value;if(currentGenre==="chaos"){const allWords=[].concat(...Object.values(genres));currentWord=allWords[Math.floor(Math.random()*allWords.length)];} else{const list=genres[currentGenre];currentWord=list[Math.floor(Math.random()*list.length)];} showPlayers();}
+
+function showPlayers(){let html="";players.forEach((p,i)=>html+=`<button class='player-btn' onclick='reveal(${i})'>${p}</button>`);document.getElementById('plist').innerHTML=html;go('playerList');}
+
+function reveal(i){go('reveal');if(imposters.includes(i)){document.getElementById('card').style.textShadow='0 0 20px red';document.getElementById('card').innerHTML="❓ IMPOSTER ❓";} else {document.getElementById('card').style.textShadow='0 0 20px cyan';document.getElementById('card').innerHTML="WORD:<br><b>"+currentWord+"</b>";}}
+function back(){go('playerList');}
+
+const canvas=document.getElementById('fogCanvas');const ctx=canvas.getContext('2d');canvas.width=window.innerWidth;canvas.height=window.innerHeight;let fogParticles=[];for(let i=0;i<100;i++){fogParticles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,radius:Math.random()*100+50,speed:Math.random()*0.2+0.05})} function drawFog(){ctx.clearRect(0,0,canvas.width,canvas.height);fogParticles.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,p.radius,0,2*Math.PI);ctx.fillStyle='rgba(50,0,70,0.05)';ctx.fill();p.x+=p.speed;if(p.x>canvas.width)p.x=0;});requestAnimationFrame(drawFog);} drawFog();
+</script>
+</body>
+</html>
